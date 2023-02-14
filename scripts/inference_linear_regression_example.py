@@ -215,3 +215,8 @@ sampler_result = sampler_run()
 overplot_sampler_and_brute_force(sampler_result, grid, injection_parameters)
 plot_posterior_predictive_check(data, time, model, sampler_result.posterior)
 plot_grid(grid, injection_parameters, save=True)
+
+fig, ax = plt.subplots()
+
+# remove axes splines
+ax.

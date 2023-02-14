@@ -1,12 +1,7 @@
 import numpy as np
-import matplotlib.pyplot as plt
-
 import bilby
-
 from bilby import run_sampler
-
-from bilby.core.prior import Constraint, Uniform
-
+import matplotlib.pyplot as plt
 from bilby.gw.conversion import (
     convert_to_lal_binary_black_hole_parameters,
     generate_all_bbh_parameters
@@ -22,30 +17,43 @@ from bilby.gw.waveform_generator import WaveformGenerator
 from gwpy.plot import Plot as GWpyPlot
 from gwpy.timeseries import TimeSeries
 import os
+import logging
 
-OUTDIR = "outdir"
-os.makedirs(OUTDIR, exist_ok=True)
+bilby_logger = logging.getLogger("bilby")
 
+# ## Downloading IFO data
+#
+# Now we download the raw data and make some plots
+
+# +
 interferometers = InterferometerList(["H1", "L1"])
-trigger_time = get_event_time("GW150914")
-tc = trigger_time
-start_time = trigger_time - 3
+tc = get_event_time("GW150914")
+
+start_time = tc - 3
 duration = 4
 end_time = start_time + duration
 roll_off = 0.2
+maximum_frequency = 512
+minimum_frequency = 20
+
+
 
 # Get raw data
 raw_data = {}
-for interferometer in interferometers:
+for ifo in interferometers:
     print(
-        "Getting analysis segment data for {}".format(interferometer.name)
+        f"Getting {ifo.name} analysis data segment (takes ~ 30s)"
     )
     analysis_data = TimeSeries.fetch_open_data(
-        interferometer.name, start_time, end_time
+        ifo.name, start_time, end_time
     )
-    interferometer.strain_data.roll_off = roll_off
-    interferometer.strain_data.set_from_gwpy_timeseries(analysis_data)
-    raw_data[interferometer.name] = analysis_data
+    ifo.strain_data.roll_off = roll_off
+    ifo.strain_data.set_from_gwpy_timeseries(analysis_data)
+    raw_data[ifo.name] = analysis_data
+    ifo.maximum_frequency = maximum_frequency
+    ifo.minimum_frequency = minimum_frequency
+
+# -
 
 # plot raw data:
 plot = GWpyPlot(figsize=(12, 4.8))
@@ -53,27 +61,17 @@ ax = plot.add_subplot(xscale='auto-gps')
 for ifo_name, data in raw_data.items():
     ax.plot(data, label=ifo_name)
 ax.set_epoch(tc)
-ax.set_xlim(tc-0.4, tc+0.2)
+ax.set_xlim(1126259462, 1126259462.6)
 ax.set_ylabel('Strain noise')
 ax.legend()
 plot.show()
 
-# recall Dan Browns talk -- keep only data in 50-250 Hz and remove 60 Hz and 120 Hz (the 'violin modes')
-# plot of Noise
-# plot raw data after some basic filtering
-plot = GWpyPlot(figsize=(12, 4.8))
-ax = plot.add_subplot(xscale='auto-gps')
-for ifo_name, data in raw_data.items():
-    filtered_data = data.bandpass(50, 250).notch(60).notch(120)
-    ax.plot(filtered_data, label=ifo_name)
-ax.set_epoch(tc)
-ax.set_xlim(tc-0.4, tc+0.2)
-ax.set_ylim(-1e-21, 1e-21)
-ax.set_ylabel('Strain noise')
-ax.legend()
-plot.show()
+# Woah. That looks terrible. Where is the nobel-prize winning poster-child signal?
+#
+# We may need to clean up the data a bit to actually 'see' the signal. Lets get the data for the PSD and take a look at the noise once again
 
-# Get data for noise estimation -- the power spectral density (PSD)
+# +
+# downloading data
 psd_start_time = start_time + duration
 psd_duration = 128
 psd_end_time = psd_start_time + psd_duration
@@ -81,7 +79,9 @@ psd_tukey_alpha = 2 * roll_off / duration
 overlap = duration / 2
 
 for interferometer in interferometers:
-    print("Getting psd segment data for {}".format(interferometer.name))
+    print(
+        f"Getting {interferometer.name} PSD data segment (takes ~ 1min)"
+    )
     psd_data = TimeSeries.fetch_open_data(
         interferometer.name, psd_start_time, psd_end_time
     )
@@ -93,6 +93,9 @@ for interferometer in interferometers:
         frequency_array=psd.frequencies.value, psd_array=psd.value
     )
 
+# -
+
+# plotting
 for interferometer in interferometers:
     analysis_data = abs(interferometer.frequency_domain_strain)
     plt.loglog(interferometer.frequency_array, analysis_data, label="Analysis Data")
@@ -109,32 +112,50 @@ for interferometer in interferometers:
     plt.legend()
     plt.show()
 
-tc = trigger_time
+# Lets `notch` out the 60 and 120 Hz `violin` modes (black vertical lines), and only keep data within the 50-250Hz range (marked in green) from the raw data and re-plot:
+
+plot = GWpyPlot(figsize=(12, 4.8))
+ax = plot.add_subplot(xscale='auto-gps')
+for ifo_name, data in raw_data.items():
+    filtered_data = data.bandpass(50, 250).notch(60).notch(120)
+    ax.plot(filtered_data, label=ifo_name)
+ax.set_epoch(tc)
+ax.set_xlim(1126259462, 1126259462.6)
+ax.set_ylim(-1e-21, 1e-21)
+ax.set_ylabel('Strain noise')
+ax.legend()
+plot.show()
+
+# Noiceee... Lets plot the signals in the frequency domain:
+
+# +
+
 
 for ifo_name, data in raw_data.items():
     qtrans = data.q_transform(
-        frange=(20,500), fres = 0.05,
-        outseg=(tc-0.2, tc+0.1)
+        frange=(20, 500), fres=0.05,
+        outseg=(tc - 0.2, tc + 0.1)
     )
-    plot = qtrans.plot(cmap = 'viridis', dpi = 150)
+    plot = qtrans.plot(cmap='viridis', dpi=150)
     ax = plot.gca()
     ax.set_title(f'{ifo_name} Q-transform')
-    ax.set_epoch(trigger_time)
+    ax.set_epoch(tc)
     ax.set_yscale('log')
     ax.colorbar(label="Normalised energy")
 
+# -
 
+# ## Getting priors
+#
+# Now lets write down our priors for this event's analysis. Note that again we set several delta functions and restrict the search space to speed up analysis for the sake of this tutorial.
 
-
-
-
+# +
 # setup the prior
 from bilby.core.prior import Uniform, PowerLaw, Sine, Constraint, Cosine
 from corner import corner
 import pandas as pd
 
 # typically we would use a priors with wide bounds:
-tc = trigger_time
 priors = BBHPriorDict(dict(
     mass_ratio=Uniform(name='mass_ratio', minimum=0.125, maximum=1),
     chirp_mass=Uniform(name='chirp_mass', minimum=25, maximum=31),
@@ -162,21 +183,28 @@ priors['mass_2'] = Constraint(name='mass_2', minimum=20, maximum=40)
 priors['ra'] = 2.269
 priors['dec'] = -1.223
 priors['geocent_time'] = tc
-priors['psi'] = 2.659
 priors['theta_jn'] = 2.921
 priors['phi_jl'] = 0.968
-
+priors['psi'] = 2.659
 
 prior_samples = priors.sample(10000)
 prior_samples_df = pd.DataFrame(prior_samples)
-prior_samples_df
 
+# -
+
+# Plots of some priors:
+#
 
 parameters = ['chirp_mass', 'mass_ratio', 'a_1', 'a_2']
+fig = corner(
+    prior_samples_df[parameters], plot_datapoints=False,
+    plot_contours=False, plot_density=True,
+    color="tab:gray"
+)
 
-fig = corner(prior_samples_df[parameters], plot_datapoints=False, plot_contours=False, plot_density=True, color="tab:gray")
-fig.show()
+# Lets convert some parameters and see what the prior-distributions we get
 
+# +
 from bilby.gw.conversion import generate_mass_parameters
 
 prior_samples = generate_mass_parameters(prior_samples)
@@ -189,17 +217,15 @@ prior_samples['chi_eff'] = (s1z + s2z * q) / (1 + q)
 prior_samples_df = pd.DataFrame(prior_samples)
 prior_samples_df
 
-
 parameters = ['mass_1', 'mass_2', 'chi_eff']
-fig = corner(prior_samples_df[parameters], plot_datapoints=False, plot_contours=False, plot_density=True, color="tab:gray")
-fig.show()
+fig = corner(prior_samples_df[parameters], plot_datapoints=False, plot_contours=False, plot_density=True,
+             color="tab:gray")
 
+# -
 
+# ## Inference step
 
-# setup the waveform generator and likelihood
-
-
-
+# +
 waveform_generator = WaveformGenerator(
     duration=interferometers.duration,
     sampling_frequency=interferometers.sampling_frequency,
@@ -216,21 +242,25 @@ likelihood = GravitationalWaveTransient(
     phase_marginalization=True, jitter_time=False
 )
 
-
-result = run_sampler(
-    likelihood=likelihood, priors=priors, save=True,
-    label="GW150914",
-    nlive=50, walks=25,
-    conversion_function=generate_all_bbh_parameters,
-    result_class=CBCResult,
-)
-
-
-for interferometer in interferometers:
-    fig = result.plot_interferometer_waveform_posterior(
-        interferometer=interferometer
+RE_RUN_SLOW_CELLS = True
+if RE_RUN_SLOW_CELLS:
+    bilby_logger.setLevel(logging.INFO)
+    result = run_sampler(
+        likelihood=likelihood, priors=priors, save=True,
+        label="GW150914",
+        nlive=1000,
+        conversion_function=generate_all_bbh_parameters,
+        result_class=CBCResult,
     )
-    plt.show()
+else:
+    print("Skipping sampling...")
+    fn = f"{OUTDIR}/GW150914_result.json"
+    download(GW150914_URL, fn)
+    result = bilby.gw.result.CBCResult.from_json(filename=fn)
+    print("Loaded result!")
 
+# -
 
-result.plot_corner(parameters=["mass_1_source", "mass_2_source", "chi_eff"])
+result.plot_corner(parameters=["mass_ratio", "chi_eff"])
+
+result.plot_corner(parameters=["mass_1", "mass_2"])
