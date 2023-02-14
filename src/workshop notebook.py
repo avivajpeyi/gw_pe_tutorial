@@ -342,7 +342,9 @@ print(f"Brute force log evidence = {brute_result['log_evidence']}")
 # -
 
 # Looks like the answer is around 
-# $$0<m<1, c\sim0$$
+# \begin{align}
+# 0<m<1, 1 < c < -2
+# \end{align}
 
 # We can even compute the marginal posteriors:
 #

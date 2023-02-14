@@ -1,22 +1,28 @@
-#!/usr/bin/env python
-# coding: utf-8
+# ---
+# jupyter:
+#   jupytext:
+#     formats: ipynb,py:light
+#     text_representation:
+#       extension: .py
+#       format_name: light
+#       format_version: '1.5'
+#       jupytext_version: 1.14.1
+#   kernelspec:
+#     display_name: Python 3 (ipykernel)
+#     language: python
+#     name: python3
+# ---
 
-# # Parameter estimation tutorial
-# 
+# # [Unexecuted] Parameter estimation tutorial
+#
 # There are a quite a few steps to analyse GW data. Today we'll focus on the middle panel:
 # ![Screen-Shot-2022-11-21-at-10-35-12-pm-1.png](https://i.postimg.cc/dtLCYm7Y/Screen-Shot-2022-11-21-at-10-35-12-pm-1.png)
 
-# In[11]:
-
-
-get_ipython().system(' pip install bilby[gw] --upgrade -q')
+# ! pip install bilby[gw] --upgrade -q
 # NOTE: you'll have to restart your runtime after this
 
-
-# In[169]:
-
-
-get_ipython().run_line_magic('matplotlib', 'inline')
+# + tags=["hide-cell"]
+# %matplotlib inline
 import bilby
 import matplotlib.pyplot as plt
 import numpy as np
@@ -76,35 +82,31 @@ def download(url: str, fname: str):
 notebook_setup()
 
 
-# In[13]:
-
-
+# + tags=["hide-cell"]
 RE_RUN_SLOW_CELLS = False
 OUTDIR = "outdir"
-
+# -
 
 # # Bayesian Inference intro
-# 
-# 
+#
+#
 # To start, lets take a look at Bayes' theorem:
-# 
+#
 # \begin{align}
 # \rm{Posterior} &= \frac{\rm{Prior} * \rm{Likelihood}}{\rm{Evidence}}  \\
 # \implies P(\theta|\rm{data}) &= \frac{\pi(\theta)\  \mathcal{L}(\rm{data}|\theta)}{\int_{\theta} \pi(\theta)\ \mathcal{L}(\rm{data}|\theta)\ d\theta}\\
 #  &= \frac{\pi(\theta)\  \mathcal{L}(\rm{data}|\theta)}{\mathcal{Z}(data)}
 # \end{align}
-# 
+#
 # For a primer on Bayesian inference in GW, please look at [Eric Thrane + Colm Talbot's paper](https://arxiv.org/abs/1809.02293).
-# 
-# 
-# 
+#
+#
+#
 # In this workshop we will focus more on how we can perform inference and not focus too much on the maths. 
-# 
+#
 # Lets look at an example of how we can use Bayesian inference to analyse the following data:
 
-# In[14]:
-
-
+# + tags=["hide-cell"]
 observation = np.array([
     -1.65, 1.93, 2.88, -2.28, -1.02, 0.35, 1.49, 0.65, -1.95, 
     3.64, -2.47, 3.91, -2.16, 1.03, 0.6, 6.96, 1.07, -2.69, 
@@ -131,9 +133,7 @@ time = np.array([
 ])
 
 
-# In[15]:
-
-
+# +
 def plot_data(ax=None):
     if ax is None:
         fig, ax = plt.subplots()
@@ -145,18 +145,17 @@ def plot_data(ax=None):
 plot_data()
 
 
+# -
+
 # Lets assume:
 # 1) The observed data `d(t)` consists of the following: `d(t) = n(t) + s(t)`.
 # 2) The noise `n(t)` is `Gaussian white noise` (drawn from a Normal distribution).
 # 3) The signal `s(t)` is a straight-line signal. 
-# 
+#
 # With these assumptions, we can start implementing our Bayesian inference pipeline.
 
 # ## Signal Model
 # Assuming a straight line signal:
-
-# In[16]:
-
 
 def signal_model(time, m, c):
     return time * m + c
@@ -165,33 +164,24 @@ def signal_model(time, m, c):
 # ## Priors
 # Now we can write down some priors on the parameters `m` and `c` of this model. 
 # This is what we think our parameters can potentially be.  
-# 
-# 
+#
+#
 
-# In[17]:
-
-
+# +
 import bilby
 
 priors = bilby.core.prior.PriorDict(dict(
     m=bilby.core.prior.TruncatedNormal(mu=0, sigma=1, minimum=0, maximum=3, name="m"),
     c=bilby.core.prior.Uniform(-5, 5, name="c"),
 ))
-
+# -
 
 # To test our prior, lets draw some prior samples and print some samples:
-
-# In[18]:
-
 
 import pandas as pd
 pd.DataFrame(priors.sample(5))
 
-
 # Lets plot some histograms of these samples in a `corner` plot:
-
-# In[19]:
-
 
 from corner import corner
 fig = corner(
@@ -203,19 +193,17 @@ fig = corner(
 
 
 # Here each column/row represents one parameter. 
-# 
+#
 # The plots along the upper diagonal show the 1D histograms of the parameters.
 # In the above, these represent `pi(m)` and `pi(c)` -- the prior distributions for `m` and `c`. 
-# 
+#
 # The plots on the inside of the corner show the 2D histograms for the intersecting parameters.
 # Here, the 2D join distribution is `pi(m,c)`.
-# 
-# 
+#
+#
 # At this point, lets test out our model and priors:
 
-# In[20]:
-
-
+# +
 def plot_model_on_data(samples, plot_each_sample=False, color="tab:blue", ax=None):
     m, c = samples['m'], samples['c']
     
@@ -240,38 +228,32 @@ def plot_model_on_data(samples, plot_each_sample=False, color="tab:blue", ax=Non
     
 fig = plot_model_on_data(priors.sample(30), True)
 
+# -
 
 # Looks like the model can potentially fit the data! Lets try to use the Bayesian inference framework to help us get estimates on the model parameters. 
 
 # ## Likelihood
-# 
+#
 # Recall the assumption that `d(t) = n(t) + s(t)`, and that the noise is normally distributed. Using this, we can write:
-# 
+#
 # \begin{align}
 # n(t) &= s(t) - d(t)\\
 # &= \mathcal{N}(\sigma=3, \mu=0)
 # \end{align}
-# 
+#
 # [NOTE: we've hardcoded `sigma` here, but you could add in a prior on `sigma` as well]
-# 
+#
 # Hence, we can write out the signal-model likliood `L(data|m,c)` as:
-# 
+#
 # \begin{align}
 # \mathcal{L}(\rm{data}|m,c) = \prod_j \rm{Normal}_{\rm{PDF}}(\left[d - s_j\right]; \mu=0,\sigma=3)
 # \end{align}
-# 
+#
 # This type of `Gaussian` likelihoods has already been coded up in `bilby`:
-
-# In[21]:
-
 
 likelihood = bilby.likelihood.GaussianLikelihood(time, observation, signal_model, sigma=3)
 
-
 # Let's test if we can compute a likelihood and dont get a nan:
-
-# In[22]:
-
 
 # we need to provide the parameter to compute the likeliood for
 likelihood.parameters = dict(m=0, c=0)
@@ -279,14 +261,12 @@ print(f"Log Likelihood (data| {likelihood.parameters}) = {likelihood.log_likelih
 
 
 # ## Brute force posterior computation
-# 
+#
 # We now have everything we need to compute our posterior! 
 # In the first pass, lets compute the posterior over a grid of `m` and `c` values:
-# 
+#
 
-# In[23]:
-
-
+# + tags=["hide-cell"]
 def get_grid_of_m_c(n_per_dim, prior):
     assert "m" in prior and "c" in prior
     samples = pd.DataFrame(prior.sample(10000))
@@ -308,12 +288,11 @@ def plot_grid(m_c_grid, c="tab:blue", ax=None):
 m_c_grid = get_grid_of_m_c(100, priors)
 fig = plot_grid(m_c_grid)
 
+# -
 
 # Computing the prior, likelhood and posterior at each grid-point:
 
-# In[24]:
-
-
+# + tags=["hide-cell"]
 
 def run_brute_force_analysis(likelihood, prior, samples_list):
     n = len(samples_list)
@@ -360,21 +339,22 @@ brute_result = run_brute_force_analysis(likelihood, priors, m_c_grid.to_dict('re
 fig = plot_grids_of_brute_result(brute_result)
 print(f"Brute force log evidence = {brute_result['log_evidence']}")
 
+# -
 
 # Looks like the answer is around 
-# $$0<m<1, c\sim0$$
+# \begin{align}
+# 0<m<1, 1 < c < -2
+# \end{align}
 
 # We can even compute the marginal posteriors:
-# 
+#
 # \begin{align}
 # p(m|d)&= \int_c p(m,c|d)\ dc\\
 # p(c|d)&= \int_m p(m,c|d)\ dm
 # \end{align}
 # These will give us the estimated values for the model parameters
 
-# In[25]:
-
-
+# +
 from corner.core import quantile
 
 def get_marginalised_posterior(parameter, res):
@@ -398,12 +378,9 @@ for ax, p in zip(axes, ['m', 'c']):
     ax.set_yticks([])
     ax.set_title(title)
     ax.set_xlabel(p)
-
+# -
 
 # Lets also plot the posterior predictive check:
-
-# In[26]:
-
 
 fig = plot_model_on_data(
     m_c_grid.sample(30, weights=brute_result['posterior']),
@@ -412,18 +389,16 @@ fig = plot_model_on_data(
 
 
 # ## Sampling from the posterior
-# 
+#
 # There are some drawbacks from brute-force posterior estimation. 
-# 
+#
 # What happens when the number of parameters increases to 15?
-# 
+#
 # Drawing samples from the posterior and trying to estimate the likelihood may be a cheaper approach.
-# 
+#
 # Below is some code to demonstrate how we can use bilby + a `nested` sampler "dynesty" to do this:
 
-# In[27]:
-
-
+# +
 def sampler_run():
     result = bilby.run_sampler(
         likelihood=likelihood,
@@ -437,35 +412,28 @@ def sampler_run():
     return result
 
 sampler_result = sampler_run()
-
+# -
 
 # Now we can make some plots. 
-# 
+#
 # First, lets plot the `corner` plot, and overplot the prior (in green) in the 1D distribution: 
-
-# In[28]:
-
 
 fig = sampler_result.plot_corner(priors=True, save=False)
 
-
 # Now lets check how well we have done (comparing against the true value):
 
-# In[29]:
-
-
+# +
 truths = {'c': 0.2, 'm': 0.5, 'sigma': 3}
 
 fig = plot_model_on_data(sampler_result.posterior.sample(1000))
 fig.axes[0].plot(time, signal_model(time, m=truths['m'], c=truths['c']), color="tab:orange", ls='--', label="True")
 fig.axes[0].legend();
 
+# -
 
 # Lets finally compare the brute-force results and the nested-sampling results: 
 
-# In[30]:
-
-
+# + tags=["hide-cell"]
 def overplot_sampler_and_brute_force(sampler_result, brute_result, truths):
     truths = dict(m=truths["m"], c=truths["c"])
     fig = sampler_result.plot_corner(parameters=truths, save=False)
@@ -500,55 +468,55 @@ def overplot_sampler_and_brute_force(sampler_result, brute_result, truths):
 
 
 overplot_sampler_and_brute_force(sampler_result, brute_result, truths)
-
+# -
 
 # Both sets of results match up quite well! Even the log-evidences are comparable. 
-# 
+#
 # Lets move on to GW signals! 
 
 # # CBC GW  Signal Model
-# 
+#
 # The GW from compact binary coalescence (CBC) systems can be modeled using the following parameters:
-# 
+#
 # - 2 mass parameters (eg m1, m2)
 # - 6 spin parameters (eg s1x, s1y, s1z, ...)
 # - 2 tidal deformation parameters (for neutron stars, lambda1, lambda2)
 # - 2 orbital eccentricity parameters (e, arg of periastron) 
 # - 7 extrinsic parameters (distance, sky-loc, timing, phase)
-# 
-# 
+#
+#
 # Some of these are shown here:
-# 
+#
 # <div>
 # <img src="https://gcdnb.pbrd.co/images/EfwMgftuS4L5.png?o=1" width="350"/>
 # </div>
-# 
-# 
-# 
+#
+#
+#
 # Additionally, there are quite a few re-parameterisations of these. 
-# 
+#
 # For example, instead of the component masses $m_1, m_2$, one could also use the 
 # - `mass_ratio`: `q=m_2/m_1` where `m_1>m_2`, and 
 # - `chirp_mass`: 
 # \begin{align}
 # \mathcal{M} = \frac{(m_1 m_2)^{3/5}}{(m_1 + m_2)^{1/5}}
 # \end{align}
-# 
+#
 # Similarly, we can use parameterize the dimensionless spins with the following 6 parameters:
 # - `chi_i` or $a_i$ : the spin magnitude (`0<a_i<1`) 
 # - `theta_i` or `tilt_i`: the angle of the component binary wrt the `z` axis (along the orbital axis)
 # - `phi_12`: the difference between the component spins projected on the `xy` plane (along the orbital plane)
 # -  `theta_jl`: the angle between the orbital angular momentum `L` vector and the total angular momentum vector `J`. 
-# 
+#
 
-# 
+#
 # Lets go over all the parameters in more detail:
-# 
-# 
+#
+#
 # ````{tab} Intrinsic parameters
-# 
+#
 # **INTRINSIC PARAMETERS**
-# 
+#
 # * Mass: 2D
 #   - Usually uniform in two mass parameters
 #   - Component masses widely used (`m_1, m_2`)
@@ -573,9 +541,9 @@ overplot_sampler_and_brute_force(sampler_result, brute_result, truths)
 #     
 # ````
 # ````{tab} Extrinsic parameters 
-# 
+#
 # **EXTRINSIC PARAMETERS**
-# 
+#
 # * Location: 3D
 #   - ra, dec, distance
 #   - Usually isotropic over the sky
@@ -591,21 +559,19 @@ overplot_sampler_and_brute_force(sampler_result, brute_result, truths)
 # ````
 
 # Note: increasing the spin in the x-y components can lead to precession.
-# 
-# 
+#
+#
 # <div>
 # <img src="https://media4.giphy.com/media/NF76iRgEerkx0qrsD0/giphy.gif?cid=790b76113d85f36207d50f4d1f42feead29a3c4cb8f2f1a6&rid=giphy.gif&ct=g" width="350"/>
 # </div>
-# 
-# 
+#
+#
 # Such a highly precessing system may be found in globular clusters/AGNs. 
 
-# 
+#
 # Lets plot our own waveform:
 
-# In[31]:
-
-
+# + tags=["hide-cell"]
 import bilby
 from bilby.gw.conversion import chirp_mass_and_mass_ratio_to_component_masses
 import numpy as np
@@ -685,18 +651,13 @@ def plot_waveform(waveform_generator, signal_parameters={}, fig=None, polarisati
 
 
 
-# In[32]:
-
+# -
 
 waveform_generator = make_waveform_generator(approximant="IMRPhenomPv2")
 bilby_logger.setLevel(logging.DEBUG)
 fig = plot_waveform(waveform_generator, dict(mass_1=20., mass_2=25., psi=0.5), polarisation='both')
 
-
 # Q: What happens if we increase chirp-mass?
-
-# In[33]:
-
 
 bilby_logger.setLevel(logging.ERROR) # turn off logging
 for mc in np.linspace(20, 60, 3):
@@ -706,12 +667,9 @@ for mc in np.linspace(20, 60, 3):
     fig.axes[0].axis('off') 
     fig.axes[0].legend(frameon=False)
 
-
 # Playing around with some interactive plots can also help build some intuition:
 
-# In[34]:
-
-
+# +
 from ipywidgets import interact, interactive, fixed, interact_manual
 import ipywidgets as widgets
 
@@ -725,9 +683,7 @@ def interact_a1(a_1=0.5):
     
 
 
-# In[35]:
-
-
+# +
 
 @interact(dist=(1000, 10000, 500))
 def interact_dist(dist=2000):
@@ -738,17 +694,17 @@ def interact_dist(dist=2000):
     
 
 
+# -
+
 # # CBC Parameter Estimation
-# 
+#
 # Finally, we get to actual parameter estimation for gravitational waves! 
-# 
+#
 # ## Simulate a signal 
-# 
+#
 # We start by first simulating a signal (using the same code as the previous section for waveform generation)
 
-# In[36]:
-
-
+# +
 import bilby
 import numpy as np
 import logging
@@ -783,19 +739,15 @@ waveform_generator = bilby.gw.WaveformGenerator(
 
 
 
-# In[37]:
-
+# -
 
 fig = plot_waveform(waveform_generator, injection_parameters)
 
-
 # ## Inject the signal into an interferometer's data stream
-# 
+#
 # We can now simulate some detector noise and inject this signal into the detector-noise
 
-# In[38]:
-
-
+# +
 # Inject the signal into 1 detectors LIGO-Hanford (H1) at design sensitivity
 ifos = bilby.gw.detector.InterferometerList(["H1"])
 ifos.set_strain_data_from_power_spectral_densities(
@@ -819,18 +771,20 @@ for interferometer in ifos:
     plt.legend(frameon=False)
 
 
+# -
+
 # ### Notes about noise:
-# 
+#
 # - Lots of short duration glitches
 # - The main contribution to LIGO/Virgo/KAGRA data is coloured Gaussian noise.
 # - Constant frequency "lines"
-# 
-# 
+#
+#
 # The Gaussian noise is described by the noise amplitude (power) spectral density, ASD (PSD).
-# 
+#
 # Most conveniently described in the frequency domain using a [circularly-symmetric complex normal distribution](https://en.wikipedia.org/wiki/Complex_normal_distribution#Circularly-symmetric_normal_distribution).
-# 
-# 
+#
+#
 # #### Power/Ampitude-spectral-density generation (PSD/ASD)
 # - Average over data (normally do this)
 #   - Divide a long chunk of data and average the power in each chunk
@@ -848,7 +802,7 @@ for interferometer in ifos:
 # - Can bias parameter estimation if overlapping signal
 # - Can bias PSD estimation
 # To mitigate:
-# 
+#
 # - Zero out data containing glitch, "gating"
 #   - Also potentially removes signal
 #   - Can bias PSD estimation if care is not taken
@@ -857,9 +811,9 @@ for interferometer in ifos:
 #   - Describing the PSD requires lots of parameters
 #   - Estimating all these parameters is difficult and computationally expensive
 #   - Especially expensive marginalise over the uncertainty in the model while fitting CBC signal models
-# 
+#
 # #### Lines
-# 
+#
 # - Data at specific frequencies are persistently non-Gaussian and non-stationary
 # - Large amplitude can cause spectral leakage
 #   - Need to apply a window
@@ -874,12 +828,10 @@ for interferometer in ifos:
 # - Included in compact binary coalescence parameter estimation (for now...)
 
 # ## Create priors for analysis
-# 
+#
 # Since sampling all parameters will take a long time, we set delta-functions to all but one mass parameter (chirp-mass). 
 
-# In[39]:
-
-
+# +
 # We sample in chirp-mass and mass-ratio, however--these are quite un-astrophysical priors
 # but in post-processing convert to uniform-in-component masses 
 priors = bilby.gw.prior.BBHPriorDict()
@@ -909,10 +861,9 @@ priors["chirp_mass"] = bilby.gw.prior.UniformInComponentsChirpMass(
 priors.validate_prior(duration, min_freq);
 
 
+# -
+
 # Making some plots of the priors:
-
-# In[40]:
-
 
 mc = priors.sample(10000)['chirp_mass']
 fig, ax = plt.subplots(figsize=(2,2))
@@ -920,26 +871,22 @@ ax.hist(mc, histtype='step', bins=50)
 ax.set_yticks([])
 ax.set_xlabel("Chirp Mass " + r"$M_{\odot}$" );
 
-
 # ## Create the likelihood to use for analysis
-# 
+#
 # Similar to the line-signal in Gaussian noise case, we assume that the GW signal is embedded in some Gaussian noise. We also assume that the noise is stationary.
-# 
+#
 # With these asumptions, we can use the [Whittle likelihood](https://en.wikipedia.org/wiki/Whittle_likelihood): 
-# 
+#
 # \begin{align}
 # \mathcal{L}(d | \theta) = \prod^{\rm{H, L, V}}_{i}\ \prod^{20-2048Hz}_{j} \frac{1}{2 \pi\  \rm{PSD}_{i,j} } \exp\left( -\frac{|\tilde{d}_{i,j} - \tilde{h}_{i,j}(\theta)|^2}{2\ \rm{PSD}_{i,j} } \right).
 # \end{align}
-# 
+#
 # Here:
 # - `d` is the frequency-domain strain data, 
 # - `h` is the template waveform
-# 
+#
 # This can be instantiated in bilby like so:
-# 
-
-# In[41]:
-
+#
 
 # the IFOs contain the data and PSD for each detector
 # the waveform generator can generate differnt h(t)
@@ -948,11 +895,7 @@ likelihood = bilby.gw.GravitationalWaveTransient(
     waveform_generator=waveform_generator,
 )
 
-
 # ## Run inference
-
-# In[42]:
-
 
 if RE_RUN_SLOW_CELLS:
     # Run sampler.  In this case we're going to use the `dynesty` sampler
@@ -976,11 +919,7 @@ else:
     result = bilby.gw.result.CBCResult.from_json(filename=fn)
     print("Loaded result!")
 
-
 # ## Make some plots
-
-# In[43]:
-
 
 result.plot_corner(parameters=["mass_1", "mass_2"], truths=[inj_m1, inj_m2], save=False)
 for interferometer in ifos:
@@ -989,27 +928,20 @@ for interferometer in ifos:
     )
     plt.show()
 
-
 # ## Cleanup
-
-# In[44]:
-
 
 # lets clear up some memory before proceeding to the next section!
 del result
 del ifos
 
-
 # # Analysis of GW150914
-# 
+#
 # Lets analyse a real event! 
-# 
+#
 # ## Setup
 # First we import some functions so we dont need to put in the full path 
 
-# In[45]:
-
-
+# + tags=["hide-cell"]
 import numpy as np
 import bilby
 from bilby import run_sampler
@@ -1032,15 +964,13 @@ import os
 import logging 
 bilby_logger = logging.getLogger("bilby")
 bilby_logger.setLevel(logging.ERROR)
-
+# -
 
 # ## Downloading IFO data
-# 
+#
 # Now we download the raw data and make some plots
 
-# In[57]:
-
-
+# +
 interferometers = InterferometerList(["H1", "L1"])
 trigger_time = get_event_time("GW150914")
 
@@ -1064,9 +994,7 @@ for ifo in interferometers:
     ifo.strain_data.set_from_gwpy_timeseries(analysis_data)
     raw_data[ifo.name] = analysis_data
 
-
-# In[49]:
-
+# -
 
 # plot raw data:
 plot = GWpyPlot(figsize=(12, 4.8))
@@ -1079,14 +1007,11 @@ ax.set_ylabel('Strain noise')
 ax.legend()
 plot.show()
 
-
 # Woah. That looks terrible. Where is the nobel-prize winning poster-child signal? 
-# 
+#
 # We may need to clean up the data a bit to actually 'see' the signal. Lets get the data for the PSD and take a look at the noise once again
 
-# In[60]:
-
-
+# +
 # downloading data
 psd_start_time = start_time + duration
 psd_duration = 128
@@ -1110,8 +1035,7 @@ for interferometer in interferometers:
     )
 
 
-# In[61]:
-
+# -
 
 # plotting
 for interferometer in interferometers:
@@ -1130,11 +1054,7 @@ for interferometer in interferometers:
     plt.legend()
     plt.show()
 
-
 # Lets `notch` out the 60 and 120 Hz `violin` modes (black vertical lines), and only keep data within the 50-250Hz range (marked in green) from the raw data and re-plot:
-
-# In[62]:
-
 
 plot = GWpyPlot(figsize=(12, 4.8))
 ax = plot.add_subplot(xscale='auto-gps')
@@ -1151,9 +1071,7 @@ plot.show()
 
 # Noiceee... Lets plot the signals in the frequency domain:
 
-# In[63]:
-
-
+# +
 tc = trigger_time
 
 for ifo_name, data in raw_data.items():
@@ -1168,14 +1086,13 @@ for ifo_name, data in raw_data.items():
     ax.set_yscale('log')
     ax.colorbar(label="Normalised energy")
 
+# -
 
 # ## Getting priors
-# 
+#
 # Now lets write down our priors for this event's analysis. Note that again we set several delta functions and restrict the search space to speed up analysis for the sake of this tutorial. 
 
-# In[64]:
-
-
+# +
 # setup the prior
 from bilby.core.prior import Uniform, PowerLaw, Sine, Constraint, Cosine
 from corner import corner
@@ -1218,12 +1135,10 @@ priors['psi'] = 2.659
 prior_samples = priors.sample(10000)
 prior_samples_df = pd.DataFrame(prior_samples)
 
+# -
 
 # Plots of some priors:
-# 
-
-# In[65]:
-
+#
 
 parameters = ['chirp_mass', 'mass_ratio', 'a_1', 'a_2']
 fig = corner(
@@ -1235,9 +1150,7 @@ fig = corner(
 
 # Lets convert some parameters and see what the prior-distributions we get
 
-# In[66]:
-
-
+# +
 from bilby.gw.conversion import generate_mass_parameters
 
 prior_samples = generate_mass_parameters(prior_samples)
@@ -1254,12 +1167,11 @@ parameters = ['mass_1', 'mass_2', 'chi_eff']
 fig = corner(prior_samples_df[parameters], plot_datapoints=False, plot_contours=False, plot_density=True,
              color="tab:gray")
 
+# -
 
 # ## Inference step
 
-# In[67]:
-
-
+# +
 waveform_generator = WaveformGenerator(
     duration=interferometers.duration,
     sampling_frequency=interferometers.sampling_frequency,
@@ -1293,28 +1205,18 @@ else:
     result = bilby.gw.result.CBCResult.from_json(filename=fn)
     print("Loaded result!")
 
-
-# In[173]:
-
+# -
 
 fig = result.plot_corner(parameters=["mass_ratio", "chi_eff"], save=False)
 
-
-# In[172]:
-
-
 fig = result.plot_corner(parameters=["mass_1", "mass_2"], save=False)
-
 
 # NOTE: To get some proper results, we'd have to run with more robust sampler settings and wider priors. 
 
 # # Accessing GWTC parameter estimation results 
-# 
+#
 # The GWTC data and parameter estimation results are all online (eg https://zenodo.org/record/5546663).
 # Lets download one result and make some plots:
-
-# In[80]:
-
 
 import logging
 OUTDIR="outdir/"
@@ -1322,33 +1224,18 @@ GW200308_fn = f"{OUTDIR}/GW200308_result.h5"
 download(GW200308_URL, GW200308_fn)
 
 
-# In[84]:
-
-
 import h5py
 GW200308_result = h5py.File(GW200308_fn, "r")
 print("GW200308 samples loaded!")
 
-
 # Lets look at what is stored:
-
-# In[91]:
-
 
 print(list(GW200308_result.keys()))
 print(list(GW200308_result['C01:IMRPhenomXPHM'].keys()))
 
-
-# In[136]:
-
-
 print("Parameters stored:")
 for i in GW200308_result['C01:IMRPhenomXPHM']['posterior_samples'].dtype.names:
     print(f"  {i}")
-
-
-# In[153]:
-
 
 xphm_mc = GW200308_result['C01:IMRPhenomXPHM']['posterior_samples']['chirp_mass'][:]
 seob_mc = GW200308_result['C01:SEOBNRv4PHM']['posterior_samples']['chirp_mass'][:]
