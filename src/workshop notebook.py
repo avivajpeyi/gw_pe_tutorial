@@ -14,12 +14,15 @@
 # ---
 
 # # Parameter estimation tutorial
+#
+# There are a quite a few steps to analyse GW data. Today we'll focus on the middle panel:
+# ![Screen-Shot-2022-11-21-at-10-35-12-pm-1.png](https://i.postimg.cc/dtLCYm7Y/Screen-Shot-2022-11-21-at-10-35-12-pm-1.png)
 
-# + tags=["hide-cell"]
 # ! pip install bilby[gw] --upgrade -q
-# %matplotlib inline
+# NOTE: you'll have to restart your runtime after this
 
 # + tags=["hide-cell"]
+# %matplotlib inline
 import bilby
 import matplotlib.pyplot as plt
 import numpy as np

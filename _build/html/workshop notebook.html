@@ -502,17 +502,20 @@ const thebe_selector_output = ".output, .cell_output"
                 
   <div class="tex2jax_ignore mathjax_ignore section" id="parameter-estimation-tutorial">
 <h1>Parameter estimation tutorial<a class="headerlink" href="#parameter-estimation-tutorial" title="Permalink to this headline">¶</a></h1>
-<div class="cell tag_hide-cell docutils container">
+<p>There are a quite a few steps to analyse GW data. Today we’ll focus on the middle panel:
+<img alt="Screen-Shot-2022-11-21-at-10-35-12-pm-1.png" src="https://i.postimg.cc/dtLCYm7Y/Screen-Shot-2022-11-21-at-10-35-12-pm-1.png" /></p>
+<div class="cell docutils container">
 <div class="cell_input docutils container">
 <div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="o">!</span> pip install bilby<span class="o">[</span>gw<span class="o">]</span> --upgrade -q
-<span class="o">%</span><span class="k">matplotlib</span> inline
+<span class="c1"># NOTE: you&#39;ll have to restart your runtime after this</span>
 </pre></div>
 </div>
 </div>
 </div>
 <div class="cell tag_hide-cell docutils container">
 <div class="cell_input docutils container">
-<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">bilby</span>
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="o">%</span><span class="k">matplotlib</span> inline
+<span class="kn">import</span> <span class="nn">bilby</span>
 <span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">from</span> <span class="nn">tqdm.auto</span> <span class="kn">import</span> <span class="n">tqdm</span>
@@ -585,8 +588,8 @@ const thebe_selector_output = ".output, .cell_output"
 <div class="tex2jax_ignore mathjax_ignore section" id="bayesian-inference-intro">
 <h1>Bayesian Inference intro<a class="headerlink" href="#bayesian-inference-intro" title="Permalink to this headline">¶</a></h1>
 <p>To start, lets take a look at Bayes’ theorem:</p>
-<div class="amsmath math notranslate nohighlight" id="equation-075ee845-2138-43db-adff-67b5f9c825c9">
-<span class="eqno">(1)<a class="headerlink" href="#equation-075ee845-2138-43db-adff-67b5f9c825c9" title="Permalink to this equation">¶</a></span>\[\begin{align}
+<div class="amsmath math notranslate nohighlight" id="equation-b5f5d348-41fb-4a67-8e98-c45e0f644790">
+<span class="eqno">(1)<a class="headerlink" href="#equation-b5f5d348-41fb-4a67-8e98-c45e0f644790" title="Permalink to this equation">¶</a></span>\[\begin{align}
 \rm{Posterior} &amp;= \frac{\rm{Prior} * \rm{Likelihood}}{\rm{Evidence}}  \\
 \implies P(\theta|\rm{data}) &amp;= \frac{\pi(\theta)\  \mathcal{L}(\rm{data}|\theta)}{\int_{\theta} \pi(\theta)\ \mathcal{L}(\rm{data}|\theta)\ d\theta}\\
  &amp;= \frac{\pi(\theta)\  \mathcal{L}(\rm{data}|\theta)}{\mathcal{Z}(data)}
@@ -798,15 +801,15 @@ Here, the 2D join distribution is <code class="docutils literal notranslate"><sp
 <div class="section" id="likelihood">
 <h2>Likelihood<a class="headerlink" href="#likelihood" title="Permalink to this headline">¶</a></h2>
 <p>Recall the assumption that <code class="docutils literal notranslate"><span class="pre">d(t)</span> <span class="pre">=</span> <span class="pre">n(t)</span> <span class="pre">+</span> <span class="pre">s(t)</span></code>, and that the noise is normally distributed. Using this, we can write:</p>
-<div class="amsmath math notranslate nohighlight" id="equation-5856d7fc-86ba-4426-89f0-efafc17e97ec">
-<span class="eqno">(2)<a class="headerlink" href="#equation-5856d7fc-86ba-4426-89f0-efafc17e97ec" title="Permalink to this equation">¶</a></span>\[\begin{align}
+<div class="amsmath math notranslate nohighlight" id="equation-a1cbaa45-96e7-4ca0-888e-c04c4e28d32e">
+<span class="eqno">(2)<a class="headerlink" href="#equation-a1cbaa45-96e7-4ca0-888e-c04c4e28d32e" title="Permalink to this equation">¶</a></span>\[\begin{align}
 n(t) &amp;= s(t) - d(t)\\
 &amp;= \mathcal{N}(\sigma=3, \mu=0)
 \end{align}\]</div>
 <p>[NOTE: we’ve hardcoded <code class="docutils literal notranslate"><span class="pre">sigma</span></code> here, but you could add in a prior on <code class="docutils literal notranslate"><span class="pre">sigma</span></code> as well]</p>
 <p>Hence, we can write out the signal-model likliood <code class="docutils literal notranslate"><span class="pre">L(data|m,c)</span></code> as:</p>
-<div class="amsmath math notranslate nohighlight" id="equation-a4b4df3d-9ae8-4fd7-bbcd-e84536d9fdcf">
-<span class="eqno">(3)<a class="headerlink" href="#equation-a4b4df3d-9ae8-4fd7-bbcd-e84536d9fdcf" title="Permalink to this equation">¶</a></span>\[\begin{align}
+<div class="amsmath math notranslate nohighlight" id="equation-c7fcc6a5-9043-41d3-938d-d22d74cbe691">
+<span class="eqno">(3)<a class="headerlink" href="#equation-c7fcc6a5-9043-41d3-938d-d22d74cbe691" title="Permalink to this equation">¶</a></span>\[\begin{align}
 \mathcal{L}(\rm{data}|m,c) = \prod_j \rm{Normal}_{\rm{PDF}}(\left[d - s_j\right]; \mu=0,\sigma=3)
 \end{align}\]</div>
 <p>This type of <code class="docutils literal notranslate"><span class="pre">Gaussian</span></code> likelihoods has already been coded up in <code class="docutils literal notranslate"><span class="pre">bilby</span></code>:</p>
@@ -928,8 +931,8 @@ In the first pass, lets compute the posterior over a grid of <code class="docuti
 <p>Looks like the answer is around
 $$0&lt;m&lt;1, c\sim0$$</p>
 <p>We can even compute the marginal posteriors:</p>
-<div class="amsmath math notranslate nohighlight" id="equation-e7a864c4-9ee4-4a70-a1c2-c8165f288a20">
-<span class="eqno">(4)<a class="headerlink" href="#equation-e7a864c4-9ee4-4a70-a1c2-c8165f288a20" title="Permalink to this equation">¶</a></span>\[\begin{align}
+<div class="amsmath math notranslate nohighlight" id="equation-b55c2d26-ea42-4535-8f42-ffd61f919c12">
+<span class="eqno">(4)<a class="headerlink" href="#equation-b55c2d26-ea42-4535-8f42-ffd61f919c12" title="Permalink to this equation">¶</a></span>\[\begin{align}
 p(m|d)&amp;= \int_c p(m,c|d)\ dc\\
 p(c|d)&amp;= \int_m p(m,c|d)\ dm
 \end{align}\]</div>
@@ -1137,8 +1140,8 @@ Sampler ln_evidence: -253.37187972013103
 <li><p><code class="docutils literal notranslate"><span class="pre">mass_ratio</span></code>: <code class="docutils literal notranslate"><span class="pre">q=m_2/m_1</span></code> where <code class="docutils literal notranslate"><span class="pre">m_1&gt;m_2</span></code>, and</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">chirp_mass</span></code>:</p></li>
 </ul>
-<div class="amsmath math notranslate nohighlight" id="equation-320b327a-2d6d-4a08-940e-74193904fc48">
-<span class="eqno">(5)<a class="headerlink" href="#equation-320b327a-2d6d-4a08-940e-74193904fc48" title="Permalink to this equation">¶</a></span>\[\begin{align}
+<div class="amsmath math notranslate nohighlight" id="equation-52e5b428-eb87-4691-aee0-747ff3d10373">
+<span class="eqno">(5)<a class="headerlink" href="#equation-52e5b428-eb87-4691-aee0-747ff3d10373" title="Permalink to this equation">¶</a></span>\[\begin{align}
 \mathcal{M} = \frac{(m_1 m_2)^{3/5}}{(m_1 + m_2)^{1/5}}
 \end{align}\]</div>
 <p>Similarly, we can use parameterize the dimensionless spins with the following 6 parameters:</p>
@@ -1652,8 +1655,8 @@ To mitigate:</p></li>
 <h2>Create the likelihood to use for analysis<a class="headerlink" href="#create-the-likelihood-to-use-for-analysis" title="Permalink to this headline">¶</a></h2>
 <p>Similar to the line-signal in Gaussian noise case, we assume that the GW signal is embedded in some Gaussian noise. We also assume that the noise is stationary.</p>
 <p>With these asumptions, we can use the <a class="reference external" href="https://en.wikipedia.org/wiki/Whittle_likelihood">Whittle likelihood</a>:</p>
-<div class="amsmath math notranslate nohighlight" id="equation-4977af88-a09c-4c1b-84ae-4a9afa2bcff5">
-<span class="eqno">(6)<a class="headerlink" href="#equation-4977af88-a09c-4c1b-84ae-4a9afa2bcff5" title="Permalink to this equation">¶</a></span>\[\begin{align}
+<div class="amsmath math notranslate nohighlight" id="equation-140ae3c5-4e95-46dd-a7d2-ba444812ea4e">
+<span class="eqno">(6)<a class="headerlink" href="#equation-140ae3c5-4e95-46dd-a7d2-ba444812ea4e" title="Permalink to this equation">¶</a></span>\[\begin{align}
 \mathcal{L}(d | \theta) = \prod^{\rm{H, L, V}}_{i}\ \prod^{20-2048Hz}_{j} \frac{1}{2 \pi\  \rm{PSD}_{i,j} } \exp\left( -\frac{|\tilde{d}_{i,j} - \tilde{h}_{i,j}(\theta)|^2}{2\ \rm{PSD}_{i,j} } \right).
 \end{align}\]</div>
 <p>Here:</p>

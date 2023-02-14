@@ -2,17 +2,21 @@
 # coding: utf-8
 
 # # Parameter estimation tutorial
+# 
+# There are a quite a few steps to analyse GW data. Today we'll focus on the middle panel:
+# ![Screen-Shot-2022-11-21-at-10-35-12-pm-1.png](https://i.postimg.cc/dtLCYm7Y/Screen-Shot-2022-11-21-at-10-35-12-pm-1.png)
 
 # In[11]:
 
 
 get_ipython().system(' pip install bilby[gw] --upgrade -q')
-get_ipython().run_line_magic('matplotlib', 'inline')
+# NOTE: you'll have to restart your runtime after this
 
 
 # In[169]:
 
 
+get_ipython().run_line_magic('matplotlib', 'inline')
 import bilby
 import matplotlib.pyplot as plt
 import numpy as np
@@ -678,6 +682,7 @@ def plot_waveform(waveform_generator, signal_parameters={}, fig=None, polarisati
     # remove whitespace between subplots
     fig.subplots_adjust(hspace=0)
     return fig
+
 
 
 # In[32]:

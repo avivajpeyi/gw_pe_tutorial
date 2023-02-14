@@ -162,3 +162,6 @@ cython_debug/
 outdir*
 
 *.DS_Store
+_build
+*.ipynb_checkpoints
+*.idea

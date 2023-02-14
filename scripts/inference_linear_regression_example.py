@@ -218,5 +218,3 @@ plot_grid(grid, injection_parameters, save=True)
 
 fig, ax = plt.subplots()
 
-# remove axes splines
-ax.
