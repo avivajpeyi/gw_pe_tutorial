@@ -1,13 +1,14 @@
 # Book settings
 # Learn more at https://jupyterbook.org/customize/config.html
 
-title: NZ-GW-workshop CBC Tutorial
+title: NZ-GW workshop
+logo: logo.png
 author: Avi Vajpeyi
 
 # Force re-execution of notebooks on each build.
 # See https://jupyterbook.org/content/execute.html
 execute:
-  execute_notebooks: ''
+  execute_notebooks: 'off'
 
 # Define the name of the latex output file for PDF builds
 latex:
@@ -18,10 +19,23 @@ bibtex_bibfiles:
   - references.bib
 
 repository:
-  url: https://github.com/executablebooks/jupyter-book  # Online location of your book
+  url: https://github.com/avivajpeyi/nz_gravity_workshop  # Online location of your book
   path_to_book: docs
   branch: main
 
+parse:
+  myst_enable_extensions:
+    # don't forget to list any other extensions you want enabled,
+    # including those that are enabled by default!
+    - amsmath
+
 html:
-  use_issues_button: true
-  use_repository_button: true
+  use_issues_button: false
+  use_repository_button: false
+
+sphinx:
+  extra_extensions:
+  - sphinx_inline_tabs
+
+launch_buttons:
+  colab_url: "https://colab.research.google.com"
