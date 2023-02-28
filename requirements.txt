@@ -1,3 +1,9 @@
-jupytext
+jupyter-lab
+notebook
+ipykernel
+ploomber_engine
+psutil
+sphinx_inline_tabs
 jupyter-book
+bilby[gw]==1.4.1
 ghp-import

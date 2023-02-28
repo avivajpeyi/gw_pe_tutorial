@@ -15,8 +15,6 @@ latex:
   latex_documents:
     targetname: book.tex
 
-bibtex_bibfiles:
-  - references.bib
 
 repository:
   url: https://github.com/avivajpeyi/nz_gravity_workshop  # Online location of your book
@@ -39,3 +37,4 @@ sphinx:
 
 launch_buttons:
   colab_url: "https://colab.research.google.com"
+  binderhub_url: ""

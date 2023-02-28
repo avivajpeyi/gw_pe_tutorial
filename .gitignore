@@ -3,6 +3,8 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+!src/workshop_notebook.ipynb
+
 # C extensions
 *.so
 
@@ -158,7 +160,6 @@ cython_debug/
 *.png
 *.json
 *.pickle
-*.ipynb
 outdir*
 
 *.DS_Store

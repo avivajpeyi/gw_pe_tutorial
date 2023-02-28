@@ -2,7 +2,8 @@
 # Learn more at https://jupyterbook.org/customize/toc.html
 
 format: jb-book
-root: workshop notebook.ipynb
+root: workshop_notebook.ipynb
 chapters:
   - file: unexecuted.ipynb
+  - file: notebook_profile.md
 
